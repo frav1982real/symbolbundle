@@ -41,6 +41,14 @@
     "postcss": "^8.5",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.23.15",
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "wrangler": "4.151.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "workerd",
+      "@cloudflare/workerd-linux-64",
+      "esbuild"
+    ]
   }
 }
