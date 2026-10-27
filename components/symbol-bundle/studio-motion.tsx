@@ -1,51 +1,25 @@
 'use client'
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
-import { Leaf, Waves } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { getMotionPolicy, parseMotionPreference, type MotionCapabilities, type MotionPreference } from '@/lib/motion-policy'
 import { StudioBackground } from './studio-background'
 
-interface MotionContextValue {
-  enabled: boolean
-  initialized: boolean
-  reason: 'system' | 'manual' | 'device' | 'full'
-  toggle: () => void
-}
+const MotionContext = createContext({ enabled: false })
 
-interface ConnectionInfo extends EventTarget { saveData?: boolean }
-type MotionNavigator = Navigator & { deviceMemory?: number; connection?: ConnectionInfo }
-
-const MotionContext = createContext<MotionContextValue>({ enabled: false, initialized: false, reason: 'full', toggle: () => {} })
-const preferenceCookie = 'symbolbundle-motion'
-
-export function StudioMotion({ children, ready, suspended }: { children: ReactNode; ready: boolean; suspended: boolean }) {
+export function StudioMotion({ children, ready }: { children: ReactNode; ready: boolean }) {
   const root = useRef<HTMLDivElement>(null)
-  const [preference, setPreference] = useState<MotionPreference>('auto')
-  const [capabilities, setCapabilities] = useState<MotionCapabilities>({ reducedMotion: false })
-  const [initialized, setInitialized] = useState(false)
+  const [enabled, setEnabled] = useState(false)
   const [visible, setVisible] = useState(true)
-  const policy = getMotionPolicy(preference, capabilities)
-  const enabled = initialized && policy.enabled
 
   useEffect(() => {
-    const navigatorInfo = navigator as MotionNavigator
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
-    function updateCapabilities() {
-      setCapabilities({ reducedMotion: reducedMotion.matches, saveData: navigatorInfo.connection?.saveData, deviceMemory: navigatorInfo.deviceMemory, hardwareConcurrency: navigatorInfo.hardwareConcurrency })
-    }
+    function updateMotion() { setEnabled(!reducedMotion.matches) }
     function updateVisibility() { setVisible(!document.hidden) }
-    const saved = document.cookie.split('; ').find(cookie => cookie.startsWith(`${preferenceCookie}=`))?.split('=')[1]
-    setPreference(parseMotionPreference(saved))
-    updateCapabilities()
+    updateMotion()
     updateVisibility()
-    setInitialized(true)
-    reducedMotion.addEventListener('change', updateCapabilities)
-    navigatorInfo.connection?.addEventListener('change', updateCapabilities)
+    reducedMotion.addEventListener('change', updateMotion)
     document.addEventListener('visibilitychange', updateVisibility)
     return () => {
-      reducedMotion.removeEventListener('change', updateCapabilities)
-      navigatorInfo.connection?.removeEventListener('change', updateCapabilities)
+      reducedMotion.removeEventListener('change', updateMotion)
       document.removeEventListener('visibilitychange', updateVisibility)
     }
   }, [])
@@ -69,27 +43,12 @@ export function StudioMotion({ children, ready, suspended }: { children: ReactNo
     return () => { disposed = true; cleanup?.() }
   }, [enabled])
 
-  function toggle() {
-    const next = enabled ? 'off' : 'on'
-    setPreference(next)
-    document.cookie = `${preferenceCookie}=${next}; Path=/; Max-Age=31536000; SameSite=Lax${window.location.protocol === 'https:' ? '; Secure' : ''}`
-  }
-
-  return <MotionContext.Provider value={{ enabled, initialized, reason: policy.reason, toggle }}>
+  return <MotionContext.Provider value={{ enabled }}>
     <div ref={root} className="studio-root min-h-screen" data-ready={ready} data-motion={enabled ? 'full' : 'reduced'}>
-      <StudioBackground enabled={enabled} paused={!visible || suspended} />
+      <StudioBackground enabled={enabled} paused={!visible} />
       {children}
     </div>
   </MotionContext.Provider>
-}
-
-export function MotionToggle() {
-  const { enabled, initialized, reason, toggle } = useContext(MotionContext)
-  const description = reason === 'system' ? 'Lite mode: reduced motion is enabled in your system settings.' : reason === 'device' ? 'Automatic lite mode to save resources. Press to enable effects.' : enabled ? 'Disable background effects and UI animations. Your preference is remembered.' : 'Enable background effects and UI animations. Your preference is remembered.'
-  const Icon = enabled ? Waves : Leaf
-  return <Button variant="outline" size="sm" className="motion-toggle shrink-0" aria-label="Animations" aria-pressed={enabled} title={description} disabled={!initialized || reason === 'system'} onClick={toggle}>
-    <Icon data-icon="inline-start" /><span className="hidden md:inline">{enabled ? 'Animations on' : 'Lite mode'}</span>
-  </Button>
 }
 
 export function useStudioTransition<T extends HTMLElement>(transitionKey: string, selector = '[data-motion-item]') {
