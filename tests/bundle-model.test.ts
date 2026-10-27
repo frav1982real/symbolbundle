@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { createDemoProject, createEmptyProject, getFilePlan, getProjectValidation, hexToRgb, rgbToCmyk, slugify } from '../lib/bundle/model'
+import { createDemoProject, createEmptyProject, getAccessibleStep, getFilePlan, getLogoStepValidation, getPaletteValidation, getProjectValidation, hexToRgb, rgbToCmyk, slugify } from '../lib/bundle/model'
 import { fitDimensions } from '../lib/bundle/raster'
 
 test('a new project has no demo assets, name or planned files', () => {
@@ -9,9 +9,47 @@ test('a new project has no demo assets, name or planned files', () => {
   assert.deepEqual(project.assets, [])
   assert.equal(project.iconAssetId, '')
   assert.deepEqual(getFilePlan(project), [])
-  assert.equal(getProjectValidation(project), 'Upload at least one logo.')
+  assert.equal(getProjectValidation(project), 'Upload at least one SVG logo.')
+  assert.equal(project.colors.length, 0)
   project.colors.push('#FFFFFF')
-  assert.equal(createEmptyProject().colors.length, 1)
+  assert.equal(createEmptyProject().colors.length, 0)
+})
+
+test('future steps require valid logos and an explicitly reviewed palette', () => {
+  const project = createEmptyProject()
+  for (const requested of ['colors', 'export'] as const) assert.equal(getAccessibleStep(project, requested, false), 'logo')
+  Object.assign(project, createDemoProject())
+  assert.equal(getAccessibleStep(project, 'colors', false), 'colors')
+  assert.equal(getAccessibleStep(project, 'export', false), 'colors')
+  assert.equal(getAccessibleStep(project, 'export', true), 'export')
+  assert.equal(getAccessibleStep(project, 'logo', true), 'logo')
+  assert.equal(getAccessibleStep(project, 'colors', true), 'colors')
+  project.formats = []
+  assert.equal(getAccessibleStep(project, 'colors', false), 'colors')
+})
+
+test('incomplete names and custom roles lock every later step', () => {
+  for (const patch of [{ name: ' ' }, { assets: [] }]) {
+    const project = { ...createDemoProject(), ...patch }
+    assert.ok(getLogoStepValidation(project))
+    assert.equal(getAccessibleStep(project, 'export', true), 'logo')
+    assert.equal(getAccessibleStep(project, 'colors', true), 'logo')
+  }
+  const project = createDemoProject()
+  project.assets[0].role = 'custom'
+  assert.equal(getLogoStepValidation(project), 'Name every custom role.')
+  assert.equal(getAccessibleStep(project, 'colors', true), 'logo')
+  project.assets[0].customName = 'Partner logo'
+  assert.equal(getLogoStepValidation(project), null)
+  assert.equal(getAccessibleStep(project, 'colors', false), 'colors')
+})
+
+test('invalid palettes cannot unlock the combined delivery step', () => {
+  for (const colors of [[], ['bad'], Array(6).fill('#FFFFFF')]) {
+    const project = { ...createDemoProject(), colors }
+    assert.ok(getPaletteValidation(project))
+    assert.equal(getAccessibleStep(project, 'export', true), 'colors')
+  }
 })
 
 test('the optional demo remains valid and produces 83 unique file paths', () => {
@@ -64,6 +102,19 @@ test('raster settings reject empty, non-finite, fractional and excessive dimensi
     project.scales = scales
     assert.notEqual(getProjectValidation(project), null)
   }
+})
+
+test('JPG-only exports use the base size without requiring PNG or WebP scales', () => {
+  const project = createDemoProject()
+  project.formats = ['jpg']
+  project.scales = []
+  project.baseSize = 2048
+  assert.equal(getProjectValidation(project), null)
+  assert.ok(getFilePlan(project).filter(file => file.kind === 'jpg').every(file => file.scale === 1))
+  project.scales = [8]
+  assert.equal(getProjectValidation(project), null)
+  project.baseSize = 2049
+  assert.notEqual(getProjectValidation(project), null)
 })
 
 test('vector-only exports do not require raster settings', () => {

@@ -32,15 +32,23 @@ function TreeItem({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
   </li>
 }
 
-export function PackagePanel({ project, files, busy, uploading, progress, onDownload, validationError, finished }: { project: BundleProject; files: PlannedFile[]; busy: boolean; uploading: boolean; progress: { completed: number; total: number; filename: string }; onDownload: () => void; validationError: string | null; finished: boolean }) {
+interface DownloadProps { busy: boolean; uploading: boolean; percentage: number; onDownload: () => void; validationError: string | null; finished: boolean }
+
+export function PackageDownloadButton({ busy, uploading, percentage, onDownload, validationError, finished }: DownloadProps) {
+  return <Button size="lg" disabled={busy || uploading || !!validationError} onClick={onDownload}>{busy || uploading ? <Loader2 className="animate-spin" data-icon="inline-start" /> : finished ? <PackageCheck data-icon="inline-start" /> : <Download data-icon="inline-start" />}{uploading ? 'Analyzing files…' : busy ? `Generating ${percentage}%` : finished ? 'Download again' : 'Download ZIP'}</Button>
+}
+
+export function PackagePanel({ project, files, busy, uploading, progress, onDownload, validationError, finished, onReview, reviewLabel }: { project: BundleProject; files: PlannedFile[]; busy: boolean; uploading: boolean; progress: { completed: number; total: number; filename: string }; onDownload: () => void; validationError: string | null; finished: boolean; onReview: () => void; reviewLabel: string }) {
   const tree = useMemo(() => makeTree(files), [files])
   const percentage = progress.total ? Math.round(progress.completed / progress.total * 100) : 0
   return <aside aria-label="Summary and download" className="flex min-w-0 flex-col border-t border-border bg-card text-card-foreground">
-    <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
-      <div className="flex min-w-0 items-center gap-3"><FolderArchive className="size-5 shrink-0 text-muted-foreground" /><div className="flex min-w-0 flex-col gap-1"><h2 className="truncate text-sm font-medium" title={project.assets.length ? `${slugify(project.name)}_Logo_Asset_Pack.zip` : undefined}>{project.assets.length ? `${slugify(project.name)}_Logo_Asset_Pack.zip` : 'Your package, ready when you are'}</h2><p className="text-sm text-muted-foreground" role="status">{validationError || `${files.length} file · ${project.formats.length} formats${project.includeGuide ? ' · PDF guide included' : ''}`}</p></div></div>
-      <Button size="lg" data-motion-success={finished || undefined} disabled={busy || uploading || !!validationError} onClick={onDownload} className="shrink-0">{busy || uploading ? <Loader2 className="animate-spin" data-icon="inline-start" /> : finished ? <PackageCheck data-icon="inline-start" /> : <Download data-icon="inline-start" />}{uploading ? 'Analyzing files…' : busy ? `Generating ${percentage}%` : finished ? 'Download again' : 'Download ZIP'}</Button>
+    <div className="flex flex-col gap-4 p-5 sm:px-6">
+      <div className="flex min-w-0 items-start gap-3"><FolderArchive className="size-5 shrink-0 text-muted-foreground" /><div className="flex min-w-0 flex-col gap-1"><h2 className="break-words text-base font-medium" title={project.assets.length ? `${slugify(project.name)}_Logo_Asset_Pack.zip` : undefined}>{project.assets.length ? `${slugify(project.name)}_Logo_Asset_Pack.zip` : 'Your package, ready when you are'}</h2><p className="text-sm text-muted-foreground">{files.length ? `${files.length} ${files.length === 1 ? 'file' : 'files'} · ${project.formats.length} ${project.formats.length === 1 ? 'format' : 'formats'}${project.includeGuide ? ' · PDF guide' : ''}` : 'Add your SVGs to see what is included.'}</p></div></div>
+      <PackageDownloadButton busy={busy} uploading={uploading} percentage={percentage} onDownload={onDownload} validationError={validationError} finished={finished} />
+      {validationError && !!project.assets.length && <div className="flex flex-col items-start gap-1"><p className="text-sm leading-relaxed text-muted-foreground" role="status">{validationError}</p><Button variant="link" disabled={busy || uploading} onClick={onReview}>{reviewLabel}</Button></div>}
+      {finished && <p role="status" className="text-sm text-muted-foreground">ZIP generated. Check your downloads before closing.</p>}
     </div>
     {busy && <div className="flex min-w-0 flex-col gap-2 px-5 pb-5 sm:px-7" role="status" aria-live="polite"><div role="progressbar" aria-valuenow={percentage} aria-valuemin={0} aria-valuemax={100} aria-label="Generating package" className="h-1 overflow-hidden rounded-full bg-muted"><div className="h-full origin-left bg-primary" style={{ transform: `scaleX(${percentage / 100})` }} /></div><span className="truncate text-sm text-muted-foreground">{progress.filename}</span></div>}
-    {!!files.length && <details className="border-t border-border"><summary className="cursor-pointer px-5 py-3 text-sm text-muted-foreground sm:px-7">ZIP contents · {files.length} file</summary><ul className="flex max-h-80 min-w-0 flex-col gap-1 overflow-y-auto px-5 pb-5 sm:px-7" aria-label="Package files and folders">{tree.map(node => <TreeItem key={node.path} node={node} />)}</ul></details>}
+    {!!files.length && <details className="border-t border-border"><summary className="cursor-pointer px-5 py-3 text-sm text-muted-foreground sm:px-7">ZIP contents · {files.length} {files.length === 1 ? 'file' : 'files'}</summary><ul className="flex max-h-80 min-w-0 flex-col gap-1 overflow-y-auto px-5 pb-5 sm:px-7" aria-label="Package files and folders">{tree.map(node => <TreeItem key={node.path} node={node} />)}</ul></details>}
   </aside>
 }
