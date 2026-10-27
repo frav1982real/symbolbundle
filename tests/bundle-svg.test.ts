@@ -25,6 +25,17 @@ test('valid SVGs receive canonical dimensions and unique IDs', async () => {
   assert.deepEqual(extractColors(a.svg), ['#AABBCC'])
 })
 
+test('the shared upload reader accepts only SVGs and validates their contents', async () => {
+  const { readLogoFile } = await import('../lib/bundle/assets')
+  const asset = await readLogoFile(file(svg('<rect width="50" height="50" fill="#123456"/>'), 'brand.SVG'))
+  assert.equal(asset.sourceType, undefined)
+  assert.deepEqual(extractColors(asset.svg), ['#123456'])
+  for (const name of ['logo.png', 'logo.jpg', 'logo.jpeg', 'logo.webp', 'logo.gif', 'logo.svg.png']) {
+    await assert.rejects(readLogoFile(file(svg(''), name)), /upload an SVG file/)
+  }
+  await assert.rejects(readLogoFile(file('not an SVG', 'fake.svg')), /invalid SVG/)
+})
+
 test('physical SVG dimensions are converted consistently to CSS pixels', async () => {
   const asset = await readSvgFile(file(svg('', 'width="1in" height="72pt"')))
   assert.equal(asset.width, 96)

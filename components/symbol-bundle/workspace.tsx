@@ -14,7 +14,7 @@ import { HelpSection } from './help-section'
 import { GuideDialog } from './guide-dialog'
 import { StudioMotion } from './studio-motion'
 import { ThemeToggle, useStudioTheme } from './studio-theme'
-import { type BundleProject, type LogoAsset, createDemoProject, createEmptyProject, getFilePlan, getProjectValidation } from '@/lib/bundle/model'
+import { type BundleProject, type ConfigurationStep, type LogoAsset, createDemoProject, createEmptyProject, getAccessibleStep, getFilePlan, getLogoStepValidation, getPaletteValidation, getProjectValidation } from '@/lib/bundle/model'
 import { readLogoFile } from '@/lib/bundle/assets'
 import { extractAssetColors, mergePalette } from '@/lib/bundle/palette'
 import { saveBlob } from '@/lib/bundle/raster'
@@ -23,7 +23,8 @@ export function BundleWorkspace() {
   const { theme } = useStudioTheme()
   const [project, setProject] = useState<BundleProject>(createEmptyProject)
   const [selectedId, setSelectedId] = useState('')
-  const [tab, setTab] = useState('logo')
+  const [requestedTab, setTab] = useState<ConfigurationStep>('logo')
+  const [colorsReviewed, setColorsReviewed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [ready, setReady] = useState(false)
@@ -35,13 +36,29 @@ export function BundleWorkspace() {
   const exportLock = useRef(false)
   const files = useMemo(() => getFilePlan(project), [project])
   const isDemo = project.assets.length > 0 && project.assets.every(asset => asset.demo)
-  const validationError = getProjectValidation(project)
+  const tab = getAccessibleStep(project, requestedTab, colorsReviewed)
+  const validationError = getProjectValidation(project) || (!colorsReviewed ? 'Review and confirm your palette in step 2.' : null)
 
   useEffect(() => { setReady(true) }, [])
 
   function update(patch: Partial<BundleProject>) {
     setProject(current => ({ ...current, ...patch }))
+    if (patch.assets || patch.colors || patch.name !== undefined) setColorsReviewed(false)
     setFinished(false)
+  }
+
+  function navigate(next: ConfigurationStep) {
+    if (busy || uploading || getAccessibleStep(project, next, colorsReviewed) !== next) return
+    setTab(next)
+  }
+
+  function continueStep() {
+    if (busy || uploading) return
+    if (tab === 'logo' && !getLogoStepValidation(project)) setTab('colors')
+    if (tab === 'colors' && !getPaletteValidation(project)) {
+      setColorsReviewed(true)
+      setTab('export')
+    }
   }
 
   async function upload(incoming: File[]) {
@@ -62,7 +79,7 @@ export function BundleWorkspace() {
       }
       const colors = mergePalette([...(!existing.length || isDemo ? [] : project.colors), ...detected])
       const icon = assets.find(asset => asset.role === 'app-icon') || assets.find(asset => asset.role === 'logomark') || assets.find(asset => asset.id === project.iconAssetId) || assets[0]
-      update({ assets, iconAssetId: icon.id, ...(colors.length ? { colors } : {}), ...(isDemo || !project.name.trim() ? { name: loaded[0].name.replace(/\.[^.]+$/i, '').replace(/[_-]/g, ' ').slice(0, 60) } : {}) })
+      update({ assets, iconAssetId: icon.id, colors, ...(isDemo || !project.name.trim() ? { name: loaded[0].name.replace(/\.[^.]+$/i, '').replace(/[_-]/g, ' ').slice(0, 60) } : {}) })
       setSelectedId(loaded[0].id)
       toast.success(`${loaded.length === 1 ? 'Logo uploaded' : `${loaded.length} logos uploaded`}. Your package is taking shape.`)
     }
@@ -70,23 +87,9 @@ export function BundleWorkspace() {
     uploadLock.current = false
   }
 
-  async function detectPalette(photo?: File) {
-    if (busy || uploadLock.current) return
-    uploadLock.current = true
-    setUploading(true)
-    try {
-      const assets = photo ? [await readLogoFile(photo)] : project.assets
-      const detected = mergePalette((await Promise.all(assets.map(extractAssetColors))).flat())
-      if (!detected.length) throw new Error('No visible colors detected. Try an image with more defined areas.')
-      update({ colors: detected })
-      toast.success(`${detected.length} colors detected${photo ? ' from the photo' : ' from the logos'}. Review the palette before confirming.`)
-    } catch (error) { toast.error(error instanceof Error ? error.message : 'Unable to analyze colors.') }
-    finally { setUploading(false); uploadLock.current = false }
-  }
-
   function remove(id: string) {
     const assets = project.assets.filter(asset => asset.id !== id)
-    update({ assets, iconAssetId: project.iconAssetId === id ? assets[0]?.id || '' : project.iconAssetId })
+    update({ assets, iconAssetId: project.iconAssetId === id ? assets[0]?.id || '' : project.iconAssetId, ...(!assets.length ? { colors: [] } : {}) })
     if (selectedId === id) setSelectedId(assets[0]?.id || '')
   }
 
@@ -94,6 +97,7 @@ export function BundleWorkspace() {
     setProject(demo ? createDemoProject() : createEmptyProject())
     setSelectedId(demo ? 'demo-primary' : '')
     setTab('logo')
+    setColorsReviewed(false)
     setFinished(false)
     setResetOpen(false)
     toast.success(demo ? 'Sample project loaded.' : 'A blank canvas, a new brand.')
@@ -114,11 +118,6 @@ export function BundleWorkspace() {
     finally { setBusy(false); exportLock.current = false }
   }
 
-  function focusUpload() {
-    setTab('logo')
-    requestAnimationFrame(() => { document.getElementById('svg-upload')?.click() })
-  }
-
   return <StudioMotion ready={ready}>
     <a href="#workspace" className="sr-only rounded bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50">Skip to generator</a>
     <header className="border-b border-border bg-card text-card-foreground">
@@ -135,7 +134,7 @@ export function BundleWorkspace() {
       <section id="workspace" data-studio-intro aria-label="Logo package generator" className="overflow-hidden rounded-xl border border-border bg-card text-card-foreground shadow-sm">
         <div className="flex min-h-14 items-center justify-between gap-3 border-b border-border px-5"><div className="flex min-w-0 items-center gap-2.5"><FolderArchive className="size-4 shrink-0 text-muted-foreground" /><h2 className="truncate text-sm font-medium">{project.name || 'Your new project'}</h2>{isDemo && <Badge variant="secondary">Sample</Badge>}</div><span className="shrink-0 text-sm text-muted-foreground">{project.assets.length} / 10 logos</span></div>
         <div className="grid items-stretch md:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-          <ConfigPanel project={project} update={update} selectedId={selectedId} onSelect={setSelectedId} onUpload={upload} onRemove={remove} onDetect={() => void detectPalette()} onPhoto={file => void detectPalette(file)} tab={tab} onTab={setTab} busy={busy} uploading={uploading} onGuide={() => setGuideOpen(true)} onDemo={() => reset(true)} />
+          <ConfigPanel project={project} update={update} selectedId={selectedId} onSelect={setSelectedId} onUpload={upload} onRemove={remove} tab={tab} onTab={navigate} onContinue={continueStep} colorsReviewed={colorsReviewed} busy={busy} uploading={uploading} onGuide={() => setGuideOpen(true)} onDemo={() => reset(true)} />
           <LogoPreview project={project} selectedId={selectedId} />
         </div>
         <div id="package-summary" className="min-w-0"><PackagePanel project={project} files={files} busy={busy} uploading={uploading} progress={progress} onDownload={download} validationError={validationError} finished={finished} /></div>

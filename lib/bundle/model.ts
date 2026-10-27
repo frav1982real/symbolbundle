@@ -93,15 +93,34 @@ export function createDemoProject(): BundleProject {
 }
 
 export function createEmptyProject(): BundleProject {
-  return { ...createDemoProject(), name: '', assets: [], colors: ['#141615'], iconAssetId: '' }
+  return { ...createDemoProject(), name: '', assets: [], colors: [], iconAssetId: '' }
 }
 
-export function getProjectValidation(project: BundleProject): string | null {
-  if (!project.assets.length) return 'Upload at least one logo.'
+export type ConfigurationStep = 'logo' | 'colors' | 'export'
+
+export function getLogoStepValidation(project: BundleProject): string | null {
+  if (!project.assets.length) return 'Upload at least one SVG logo.'
   if (project.assets.some(asset => !roleOptions.some(option => option.value === asset.role))) return 'Assign a valid role to every logo.'
   if (project.assets.some(asset => asset.role === 'custom' && !asset.customName?.trim())) return 'Name every custom role.'
   if (!project.name.trim()) return 'Name your brand to continue.'
   if (project.assets.length > 10) return 'You can add up to 10 logos per project.'
+  return null
+}
+
+export function getPaletteValidation(project: BundleProject): string | null {
+  if (!project.colors.length || project.colors.length > 5 || project.colors.some(color => !/^#[0-9a-f]{6}$/i.test(color))) return 'Use 1 to 5 valid HEX colors.'
+  return null
+}
+
+export function getAccessibleStep(project: BundleProject, requested: ConfigurationStep, colorsReviewed: boolean): ConfigurationStep {
+  if (requested === 'logo' || getLogoStepValidation(project)) return 'logo'
+  if (requested === 'colors' || !colorsReviewed || getPaletteValidation(project)) return 'colors'
+  return 'export'
+}
+
+export function getProjectValidation(project: BundleProject): string | null {
+  const logoError = getLogoStepValidation(project)
+  if (logoError) return logoError
   if (!project.formats.length) return 'Select at least one format.'
   if (!project.variants.length) return 'Select at least one color variation.'
   if (project.formats.some(format => !formatDetails.some(item => item.value === format))) return 'Unsupported format.'
@@ -109,7 +128,9 @@ export function getProjectValidation(project: BundleProject): string | null {
   const hasRaster = project.formats.some(format => ['png', 'jpg', 'webp'].includes(format))
   if (hasRaster && !project.scales.length) return 'Select at least one raster scale.'
   if (hasRaster && (!Number.isInteger(project.baseSize) || project.baseSize < 64 || project.baseSize > 2048 || project.scales.some(scale => ![1, 2, 3, 4, 8].includes(scale)) || project.baseSize * Math.max(...project.scales) > 4096)) return 'Choose a whole-number longest edge between 64 and 2048 px, with a final size no greater than 4096 px.'
-  if (!project.colors.length || project.colors.length > 5 || [...project.colors, project.jpgBackground].some(color => !/^#[0-9a-f]{6}$/i.test(color))) return 'Use 1 to 5 valid HEX colors.'
+  const paletteError = getPaletteValidation(project)
+  if (paletteError) return paletteError
+  if (!/^#[0-9a-f]{6}$/i.test(project.jpgBackground)) return 'Use a valid HEX background color.'
   return null
 }
 
