@@ -104,6 +104,19 @@ test('raster settings reject empty, non-finite, fractional and excessive dimensi
   }
 })
 
+test('JPG-only exports use the base size without requiring PNG or WebP scales', () => {
+  const project = createDemoProject()
+  project.formats = ['jpg']
+  project.scales = []
+  project.baseSize = 2048
+  assert.equal(getProjectValidation(project), null)
+  assert.ok(getFilePlan(project).filter(file => file.kind === 'jpg').every(file => file.scale === 1))
+  project.scales = [8]
+  assert.equal(getProjectValidation(project), null)
+  project.baseSize = 2049
+  assert.notEqual(getProjectValidation(project), null)
+})
+
 test('vector-only exports do not require raster settings', () => {
   const project = createDemoProject()
   project.formats = ['svg', 'pdf', 'eps']

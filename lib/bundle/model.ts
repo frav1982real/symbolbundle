@@ -125,12 +125,20 @@ export function getProjectValidation(project: BundleProject): string | null {
   if (!project.variants.length) return 'Select at least one color variation.'
   if (project.formats.some(format => !formatDetails.some(item => item.value === format))) return 'Unsupported format.'
   if (project.variants.some(variant => !['original', 'black', 'white'].includes(variant))) return 'Unsupported variation.'
-  const hasRaster = project.formats.some(format => ['png', 'jpg', 'webp'].includes(format))
-  if (hasRaster && !project.scales.length) return 'Select at least one raster scale.'
-  if (hasRaster && (!Number.isInteger(project.baseSize) || project.baseSize < 64 || project.baseSize > 2048 || project.scales.some(scale => ![1, 2, 3, 4, 8].includes(scale)) || project.baseSize * Math.max(...project.scales) > 4096)) return 'Choose a whole-number longest edge between 64 and 2048 px, with a final size no greater than 4096 px.'
+  const rasterError = getRasterValidation(project)
+  if (rasterError) return rasterError
   const paletteError = getPaletteValidation(project)
   if (paletteError) return paletteError
   if (!/^#[0-9a-f]{6}$/i.test(project.jpgBackground)) return 'Use a valid HEX background color.'
+  return null
+}
+
+export function getRasterValidation(project: BundleProject): string | null {
+  const hasRaster = project.formats.some(format => ['png', 'jpg', 'webp'].includes(format))
+  if (!hasRaster) return null
+  const usesScales = project.formats.some(format => format === 'png' || format === 'webp')
+  if (usesScales && !project.scales.length) return 'Select at least one raster scale.'
+  if (!Number.isInteger(project.baseSize) || project.baseSize < 64 || project.baseSize > 2048 || (usesScales && (project.scales.some(scale => ![1, 2, 3, 4, 8].includes(scale)) || project.baseSize * Math.max(...project.scales) > 4096))) return 'Choose a whole-number longest edge between 64 and 2048 px, with a final size no greater than 4096 px.'
   return null
 }
 
