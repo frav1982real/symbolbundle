@@ -50,7 +50,6 @@ export default function RootLayout({
       </head>
       <body className="font-sans antialiased">
         <StudioTheme>{children}</StudioTheme>
-        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )

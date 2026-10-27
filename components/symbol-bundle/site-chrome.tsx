@@ -8,7 +8,7 @@ export function SiteHeader({ page, children }: { page: 'home' | 'generate'; chil
   return <header className="border-b border-border bg-card text-card-foreground">
     <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
       <Link href="/" aria-label="SymbolBundle home" className="flex items-center gap-2.5">
-        <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SymbolBundle-rT9Bmy4jn4DEiq9WgNF7mxGIbUYhFD.png" alt="" width={32} height={32} className="size-8 shrink-0 rounded-lg" />
+        <img src="/images/symbolbundle.png" alt="" width={32} height={32} className="size-8 shrink-0 rounded-lg" />
         <span className="text-base font-semibold tracking-tight sm:text-lg">SymbolBundle</span>
       </Link>
       <nav aria-label="Main navigation" className="flex items-center gap-2 sm:gap-3">

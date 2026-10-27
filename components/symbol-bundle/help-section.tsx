@@ -2,18 +2,22 @@ import Link from 'next/link'
 import { ArrowDownToLine, ArrowRight, ArrowUpFromLine, ShieldCheck, SlidersHorizontal } from 'lucide-react'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { buttonVariants } from '@/components/ui/button'
+import { BundleReveal } from './bundle-reveal'
 
 export function HelpSection() {
-  return <section id="come-funziona" aria-labelledby="how-it-works-heading" className="flex flex-col gap-12 sm:gap-16">
-    <div data-studio-intro className="flex flex-col items-start gap-5">
-      <span className="section-label">How it works · Less exporting. More designing.</span>
-      <h1 id="how-it-works-heading" className="max-w-3xl text-balance font-serif text-4xl font-medium tracking-tight sm:text-5xl lg:text-6xl">You designed the logo. We handle the rest.</h1>
-      <p className="max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">From approved logo to delivery folder. Roles, colors, formats, and a guide, without repetitive work.</p>
-      <div className="flex flex-wrap items-center gap-4">
-        <Link href="/generate" data-slot="button" className={buttonVariants({ size: 'lg' })}>Generate your bundle<ArrowRight data-icon="inline-end" aria-hidden="true" /></Link>
-        <span className="text-sm text-muted-foreground">Free. No account. No watermark.</span>
+  return <section id="howitworks" aria-labelledby="how-it-works-heading" className="flex flex-col gap-12 sm:gap-16 lg:gap-24">
+    <div className="home-hero grid items-center gap-6 sm:grid-cols-[1fr_1.08fr] sm:gap-8 lg:gap-16">
+      <div data-studio-intro className="flex flex-col items-start gap-5">
+        <span className="section-label">Less exporting. More designing.</span>
+        <h1 id="how-it-works-heading" className="home-headline text-balance font-serif font-medium">You designed the logo.<br /><span className="text-foreground">We handle the rest.</span></h1>
+        <p className="max-w-md text-pretty text-base leading-relaxed text-muted-foreground lg:text-lg">One logo in. A complete handoff out. Every format, your colors, and a brand guide. Beautifully bundled.</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href="/generate" data-slot="button" className={buttonVariants({ size: 'lg' })}>Generate your bundle<ArrowRight data-icon="inline-end" aria-hidden="true" /></Link>
+          <span className="text-sm text-muted-foreground">Free. No account.</span>
+        </div>
+        <p className="flex items-center gap-2 text-sm text-muted-foreground"><ShieldCheck className="size-4 shrink-0" aria-hidden="true" />Your files stay in your browser.</p>
       </div>
-      <p className="flex items-center gap-2 text-sm text-muted-foreground"><ShieldCheck className="size-4 shrink-0" aria-hidden="true" />Your files stay in your browser.</p>
+      <BundleReveal />
     </div>
     <div className="grid gap-8 md:grid-cols-3">{[
       { icon: ArrowUpFromLine, number: '01', title: 'Bring your logo.', body: 'Upload SVG files and assign each version a role: primary, symbol, wordmark, or a custom name. Colors are extracted automatically.' },

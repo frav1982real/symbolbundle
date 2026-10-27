@@ -1,27 +1,19 @@
 'use client'
 
 import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
-import { StudioBackground } from './studio-background'
 
 const MotionContext = createContext({ enabled: false })
 
 export function StudioMotion({ children, ready }: { children: ReactNode; ready: boolean }) {
   const root = useRef<HTMLDivElement>(null)
   const [enabled, setEnabled] = useState(false)
-  const [visible, setVisible] = useState(true)
 
   useEffect(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
     function updateMotion() { setEnabled(!reducedMotion.matches) }
-    function updateVisibility() { setVisible(!document.hidden) }
     updateMotion()
-    updateVisibility()
     reducedMotion.addEventListener('change', updateMotion)
-    document.addEventListener('visibilitychange', updateVisibility)
-    return () => {
-      reducedMotion.removeEventListener('change', updateMotion)
-      document.removeEventListener('visibilitychange', updateVisibility)
-    }
+    return () => reducedMotion.removeEventListener('change', updateMotion)
   }, [])
 
   useEffect(() => {
@@ -45,7 +37,6 @@ export function StudioMotion({ children, ready }: { children: ReactNode; ready: 
 
   return <MotionContext.Provider value={{ enabled }}>
     <div ref={root} className="studio-root min-h-screen" data-ready={ready} data-motion={enabled ? 'full' : 'reduced'}>
-      <StudioBackground enabled={enabled} paused={!visible} />
       {children}
     </div>
   </MotionContext.Provider>
