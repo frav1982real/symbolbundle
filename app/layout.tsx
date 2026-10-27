@@ -1,4 +1,3 @@
-import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import localFont from 'next/font/local'
 import { StudioTheme } from '@/components/symbol-bundle/studio-theme'
@@ -28,7 +27,7 @@ const heading = localFont({
 
 export const metadata: Metadata = {
   title: 'SymbolBundle — Your logo ready to be shipped',
-  description: 'Package your SVG logos into an organized ZIP with export formats, a color palette, favicons, and a brand guide. Free, with no account required.',
+  description: 'Package your SVG logos into an organized ZIP with export formats, a color palette, favicons, and a brand guide for FREE, with no account required.',
 }
 
 export const viewport: Viewport = {
