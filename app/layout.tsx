@@ -13,10 +13,6 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: 'SymbolBundle — Your logo ready to be shipped',
   description: 'Ready to go structure for your logo: ship it immediately',
-  icons: {
-    icon: { url: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SymbolBundle-rT9Bmy4jn4DEiq9WgNF7mxGIbUYhFD.png', type: 'image/png' },
-    apple: 'https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SymbolBundle-rT9Bmy4jn4DEiq9WgNF7mxGIbUYhFD.png',
-  },
 }
 
 export const viewport: Viewport = {
