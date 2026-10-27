@@ -28,7 +28,7 @@ const heading = localFont({
 
 export const metadata: Metadata = {
   title: 'SymbolBundle — Your logo ready to be shipped',
-  description: 'Ready to go structure for your logo: ship it immediately',
+  description: 'Package your SVG logos into an organized ZIP with export formats, a color palette, favicons, and a brand guide. Free, with no account required.',
 }
 
 export const viewport: Viewport = {

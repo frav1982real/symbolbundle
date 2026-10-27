@@ -10,10 +10,10 @@ import { Toaster } from '@/components/ui/sonner'
 import { ConfigPanel } from './config-panel'
 import { LogoPreview } from './logo-preview'
 import { PackagePanel } from './package-panel'
-import { HelpSection } from './help-section'
+import { SiteFooter, SiteHeader } from './site-chrome'
 import { GuideDialog } from './guide-dialog'
 import { StudioMotion } from './studio-motion'
-import { ThemeToggle, useStudioTheme } from './studio-theme'
+import { useStudioTheme } from './studio-theme'
 import { type BundleProject, type ConfigurationStep, type LogoAsset, createDemoProject, createEmptyProject, getAccessibleStep, getFilePlan, getLogoStepValidation, getPaletteValidation, getProjectValidation } from '@/lib/bundle/model'
 import { readLogoFile } from '@/lib/bundle/assets'
 import { extractAssetColors, mergePalette } from '@/lib/bundle/palette'
@@ -120,12 +120,9 @@ export function BundleWorkspace() {
 
   return <StudioMotion ready={ready}>
     <a href="#workspace" className="sr-only rounded bg-primary px-4 py-2 text-primary-foreground focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50">Skip to generator</a>
-    <header className="border-b border-border bg-card text-card-foreground">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-5 sm:px-8">
-        <a href="#" aria-label="SymbolBundle, back to top" className="flex items-center gap-2.5"><img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/SymbolBundle-rT9Bmy4jn4DEiq9WgNF7mxGIbUYhFD.png" alt="" width={32} height={32} className="size-8 shrink-0 rounded-lg" /><span className="text-lg font-semibold tracking-tight">SymbolBundle</span></a>
-        <nav aria-label="Main navigation" className="flex items-center gap-2 sm:gap-3"><a href="#come-funziona" onClick={() => document.getElementById('come-funziona')?.setAttribute('open', '')} className="hidden text-sm text-muted-foreground hover:text-foreground lg:block">How it works</a><ThemeToggle /><Button variant="outline" size="sm" aria-label="New project" disabled={busy || uploading} onClick={() => setResetOpen(true)}><Plus data-icon="inline-start" /><span className="hidden sm:inline">New project</span></Button></nav>
-      </div>
-    </header>
+    <SiteHeader page="generate">
+      <Button variant="outline" size="sm" aria-label="New project" disabled={busy || uploading} onClick={() => setResetOpen(true)}><Plus data-icon="inline-start" /><span className="hidden sm:inline">New project</span></Button>
+    </SiteHeader>
     <main className="mx-auto flex max-w-7xl flex-col gap-6 px-5 py-8 sm:px-8 sm:py-10">
       <section data-studio-intro className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div className="flex flex-col gap-2"><h1 className="text-balance text-3xl font-semibold tracking-[-0.04em] sm:text-4xl">From logo to delivery.</h1><p className="text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">Your logos, in the right formats. A clear guide. One ZIP.</p></div>
@@ -140,9 +137,8 @@ export function BundleWorkspace() {
         <div id="package-summary" className="min-w-0"><PackagePanel project={project} files={files} busy={busy} uploading={uploading} progress={progress} onDownload={download} validationError={validationError} finished={finished} /></div>
       </section>
       <p className="text-center text-sm text-muted-foreground">Free, with no account or watermark. No autosave: download your project before closing.</p>
-      <HelpSection />
     </main>
-    <footer className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-5 py-6 text-sm text-muted-foreground sm:px-8"><span>SymbolBundle</span><span>Made for designers.</span></footer>
+    <SiteFooter />
     <Dialog open={resetOpen} onOpenChange={setResetOpen}><DialogContent><DialogHeader><DialogTitle>A fresh start?</DialogTitle><DialogDescription className="leading-relaxed">Your current project is stored only in memory and will be replaced. Download your files first if you want to keep them.</DialogDescription></DialogHeader><DialogFooter><Button variant="ghost" onClick={() => setResetOpen(false)}>Cancel</Button><Button variant="outline" onClick={() => reset(true)}>Load sample</Button><Button onClick={() => reset(false)}>New project</Button></DialogFooter></DialogContent></Dialog>
     <GuideDialog open={guideOpen} onOpenChange={setGuideOpen} project={project} />
     <Toaster theme={theme} position="bottom-right" closeButton />
